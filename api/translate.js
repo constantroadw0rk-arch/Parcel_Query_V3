@@ -5,18 +5,18 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'API key not configured on server' });
-
-  const { query } = req.body;
+  const { query, apiKey } = req.body;
   if (!query) return res.status(400).json({ error: 'No query provided' });
+
+  // Use key from request body, fall back to server env var
+  const key = apiKey || process.env.ANTHROPIC_API_KEY;
+  if (!key) return res.status(401).json({ error: 'No API key provided. Please enter your Anthropic API key.' });
 
   const FIELD_GUIDE = `
 Available fields in the MetroGIS 7-County Parcel dataset:
 - PIN: Parcel ID (string)
-- COUNTY_PIN: County-specific parcel ID
-- CO_NAME: County name — must be one of: Anoka, Carver, Dakota, Hennepin, Ramsey, Scott, Washington (mixed case)
-- CTU_NAME: City/township name (mixed case, e.g. 'Saint Paul', 'Minneapolis', 'Bloomington', 'Eagan', 'Saint Francis')
+- CO_NAME: County name — one of: Anoka, Carver, Dakota, Hennepin, Ramsey, Scott, Washington
+- CTU_NAME: City/township name (mixed case, e.g. 'Saint Paul', 'Minneapolis', 'Bloomington', 'Eagan')
 - ZIP: ZIP code (string)
 - OWNER_NAME: Owner name (uppercase)
 - OWN_ADD_L1: Owner address line 1
@@ -27,13 +27,10 @@ Available fields in the MetroGIS 7-County Parcel dataset:
 - EMV_BLDG: Estimated market value of building/improvements (numeric, 0 if vacant)
 - EMV_TOTAL: Total estimated market value (numeric)
 - TAX_YEAR: Tax year (numeric, e.g. 2026)
-- MKT_YEAR: Market year (numeric)
 - TAX_CAPAC: Tax capacity (numeric)
 - TOTAL_TAX: Total tax (numeric)
-- USECLASS1: Primary use class (string, e.g. '1a RESIDENTIAL SINGLE UNIT', '2a AGRICULTURAL', '3a COMMERCIAL', '4a INDUSTRIAL', 'EXEMPT', 'VACANT LAND')
+- USECLASS1: Primary use class (e.g. '1a RESIDENTIAL SINGLE UNIT', '2a AGRICULTURAL', '3a COMMERCIAL', '4a INDUSTRIAL', 'EXEMPT')
 - USECLASS2, USECLASS3, USECLASS4: Secondary use classes
-- DWELL_TYPE: Dwelling type
-- HOME_STYLE: Home style (e.g. 'Two Story', 'Rambler', 'Bi-level')
 - FIN_SQ_FT: Finished square footage (numeric)
 - YEAR_BUILT: Year built (numeric)
 - NUM_UNITS: Number of units (numeric)
@@ -46,8 +43,8 @@ Available fields in the MetroGIS 7-County Parcel dataset:
 For building-to-total ratio: (EMV_BLDG * 1.0 / EMV_TOTAL)
 For underutilized: EMV_TOTAL > 0 AND (EMV_BLDG * 1.0 / EMV_TOTAL) < 0.20
 For vacant/low improvement: EMV_BLDG = 0 OR (EMV_TOTAL > 0 AND (EMV_BLDG * 1.0 / EMV_TOTAL) < 0.10)
-String comparisons: use LIKE for partial matches, = for exact. CTU_NAME and CO_NAME are mixed case.
-USECLASS1 uses LIKE for category matching: USECLASS1 LIKE '%COMMERCIAL%', USECLASS1 LIKE '%INDUSTRIAL%', USECLASS1 LIKE '%AGRICULTURAL%'
+USECLASS1 matching: use LIKE, e.g. USECLASS1 LIKE '%COMMERCIAL%', USECLASS1 LIKE '%INDUSTRIAL%'
+CTU_NAME matching: use LIKE, e.g. CTU_NAME LIKE '%Saint Paul%'
 `;
 
   const systemPrompt = `You are a GIS data analyst. Given a natural language question about Twin Cities metro tax parcels, respond ONLY with valid JSON — no markdown, no explanation, no preamble, no code fences.
@@ -70,7 +67,6 @@ Rules:
 - For commercial: USECLASS1 LIKE '%COMMERCIAL%'
 - For industrial: USECLASS1 LIKE '%INDUSTRIAL%'
 - For vacant: EMV_BLDG = 0 OR USECLASS1 LIKE '%VACANT%'
-- CTU_NAME city matching: use LIKE for partial, e.g. CTU_NAME LIKE '%Saint Paul%'
 - Default orderByFields: EMV_TOTAL DESC`;
 
   try {
@@ -78,7 +74,7 @@ Rules:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': key,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
