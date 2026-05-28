@@ -116,6 +116,7 @@
   .no-results { padding: 40px; text-align: center; font-family: var(--mono); font-size: 13px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; }
   footer { border-top: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -203,7 +204,7 @@
   <div id="resultsPanel">
     <div class="results-header">
       <div class="results-meta" id="resultsMeta"></div>
-      <div><button class="btn-green" id="kmlBtn" onclick="exportKML()" disabled>Export KML</button></div>
+      <div style="display:flex;gap:8px"><button class="btn-green" id="xlsxBtn" onclick="exportXLSX()" disabled>Export Excel</button><button class="btn-green" id="kmlBtn" onclick="exportKML()" disabled>Export KML</button></div>
     </div>
     <div id="tableContainer"></div>
   </div>
@@ -302,6 +303,7 @@ async function runQuery() {
   document.getElementById('resultsPanel').style.display='none';
   document.getElementById('queryTranslation').style.display='none';
   document.getElementById('kmlBtn').disabled=true;
+    document.getElementById('xlsxBtn').disabled=true;
   try {
     setStatus('Asking Claude to translate your query…','info');
     const t = await translateQuery(q);
@@ -324,6 +326,7 @@ async function runQuery() {
     document.getElementById('resultsMeta').innerHTML=`<span>${features.length.toLocaleString()}</span> parcels${features.length===MAX_RECORDS?' <small style="color:var(--amber)">(capped at '+MAX_RECORDS+')</small>':''}`;
     document.getElementById('resultsPanel').style.display='flex';
     document.getElementById('kmlBtn').disabled=false;
+    document.getElementById('xlsxBtn').disabled=false;
     sortCol=null; sortDir=1;
   } catch(e) {
     setStatus('Error: '+e.message,'error');
@@ -382,6 +385,40 @@ function renderTable(features, sk, dir) {
 function sortBy(key) {
   if(sortCol===key) sortDir*=-1; else{sortCol=key;sortDir=1;}
   renderTable(currentFeatures,sortCol,sortDir);
+}
+
+
+// ── EXCEL EXPORT ─────────────────────────────────────────────────────────────
+function exportXLSX() {
+  if (!currentFeatures.length) return;
+  const rows = currentFeatures.map(f => {
+    const p = f.properties;
+    const ratio = (p.EMV_TOTAL > 0 && p.EMV_BLDG != null)
+      ? ((p.EMV_BLDG / p.EMV_TOTAL) * 100).toFixed(1) + '%' : 'N/A';
+    return {
+      'PIN': p.PIN || '',
+      'City': p.CTU_NAME || '',
+      'County': p.CO_NAME || '',
+      'Use Class': p.USECLASS1 || '',
+      'Acres': p.ACRES_POLY != null ? Number(p.ACRES_POLY).toFixed(2) : '',
+      'Land EMV': p.EMV_LAND || 0,
+      'Building EMV': p.EMV_BLDG || 0,
+      'Total EMV': p.EMV_TOTAL || 0,
+      'Bldg/Total %': ratio,
+      'Year Built': p.YEAR_BUILT || '',
+      'Last Sale ($)': p.SALE_VALUE || '',
+      'Owner': p.OWNER_NAME || '',
+      'Address': p.OWN_ADD_L1 || '',
+      'ZIP': p.ZIP || '',
+      'Tax Capacity': p.TAX_CAPAC || '',
+      'School District': p.SCHOOL_DST || '',
+      'Watershed': p.WSHD_DST || ''
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Parcels');
+  XLSX.writeFile(wb, `parcel-query-${Date.now()}.xlsx`);
 }
 
 // ── KML EXPORT ────────────────────────────────────────────────────────────────
