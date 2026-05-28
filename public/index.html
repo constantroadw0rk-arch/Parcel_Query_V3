@@ -16,11 +16,45 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; min-height: 100vh; display: flex; flex-direction: column; }
 
+  /* KEY SETUP SCREEN */
+  #setupScreen {
+    display: none; position: fixed; inset: 0; background: var(--bg);
+    z-index: 100; align-items: center; justify-content: center; padding: 24px;
+  }
+  #setupScreen.visible { display: flex; }
+  .setup-box {
+    background: var(--surface); border: 1px solid var(--border-light);
+    border-radius: 12px; padding: 36px; max-width: 480px; width: 100%;
+  }
+  .setup-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .setup-logo-mark { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 14px; color: white; }
+  .setup-logo-text { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+  .setup-title { font-size: 20px; font-weight: 500; margin-bottom: 10px; }
+  .setup-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
+  .setup-desc a { color: var(--accent); text-decoration: none; }
+  .setup-desc a:hover { text-decoration: underline; }
+  .setup-steps { margin-bottom: 24px; }
+  .setup-step { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-family: var(--mono); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .step-text b { color: var(--text); }
+  .setup-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .setup-input-row input { flex: 1; background: var(--bg); border: 1px solid var(--border-light); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 6px; outline: none; transition: border-color 0.15s; }
+  .setup-input-row input:focus { border-color: var(--accent); }
+  .setup-input-row input::placeholder { color: var(--text-muted); }
+  .setup-note { font-size: 11px; color: var(--text-muted); font-family: var(--mono); line-height: 1.5; }
+  .setup-note a { color: var(--text-muted); text-decoration: underline; }
+  #setupError { display: none; font-size: 12px; color: var(--red); font-family: var(--mono); margin-bottom: 10px; }
+
+  /* MAIN UI */
   header { border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .header-left { display: flex; align-items: center; gap: 12px; }
   .logo-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 13px; color: white; flex-shrink: 0; }
   .header-title { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; }
   .header-sub { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+  .key-status { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--mono); color: var(--text-muted); cursor: pointer; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; transition: border-color 0.15s; }
+  .key-status:hover { border-color: var(--border-light); color: var(--text); }
+  .key-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
 
   main { flex: 1; display: flex; flex-direction: column; max-width: 1400px; width: 100%; margin: 0 auto; padding: 24px; gap: 20px; }
 
@@ -72,7 +106,6 @@
   td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 12px; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #1a1c22; }
-
   .val-ratio { font-family: var(--mono); font-weight: 600; }
   .val-ratio.low { color: var(--red); }
   .val-ratio.mid { color: var(--amber); }
@@ -81,11 +114,47 @@
   .useclass-badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; background: var(--border); color: var(--text-muted); border: 1px solid var(--border-light); max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
   .county-badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; background: var(--accent-dim); color: var(--accent); border: 1px solid #2a4080; }
   .no-results { padding: 40px; text-align: center; font-family: var(--mono); font-size: 13px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; }
-
   footer { border-top: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
 </style>
 </head>
 <body>
+
+<!-- SETUP SCREEN -->
+<div id="setupScreen" class="visible">
+  <div class="setup-box">
+    <div class="setup-logo">
+      <div class="setup-logo-mark">7C</div>
+      <div class="setup-logo-text">Metro Parcel Query</div>
+    </div>
+    <div class="setup-title">Connect your API key</div>
+    <div class="setup-desc">
+      This tool uses Claude to translate plain English into parcel database queries.
+      You'll need a free Anthropic API key — each query costs a fraction of a cent and bills directly to your account.
+    </div>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-text">Go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> and sign in or create a free account</div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-text">Click <b>API Keys</b> in the left sidebar → <b>Create Key</b></div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-text">Copy the key (starts with <b>sk-ant-</b>) and paste it below</div>
+      </div>
+    </div>
+    <div id="setupError"></div>
+    <div class="setup-input-row">
+      <input type="password" id="keyInput" placeholder="sk-ant-..." />
+      <button class="btn-primary" onclick="saveKey()">Connect</button>
+    </div>
+    <div class="setup-note">Your key is stored only in this browser. It is never shared with anyone other than Anthropic.</div>
+  </div>
+</div>
+
+<!-- HEADER -->
 <header>
   <div class="header-left">
     <div class="logo-mark">7C</div>
@@ -93,6 +162,10 @@
       <div class="header-title">Metro Parcel Query</div>
       <div class="header-sub">Twin Cities 7-County · MetroGIS Dataset</div>
     </div>
+  </div>
+  <div class="key-status" onclick="changeKey()" title="Click to change API key">
+    <div class="key-dot"></div>
+    <span id="keyLabel">Connected</span>
   </div>
 </header>
 
@@ -138,48 +211,79 @@
 
 <footer>
   <span>MetroGIS Regional Parcel Dataset · Anoka · Carver · Dakota · Hennepin · Ramsey · Scott · Washington</span>
-  <span>Data updated quarterly · Cmd+Enter to run query</span>
+  <span>Data updated quarterly · Cmd+Enter to run</span>
 </footer>
 
 <script>
 const ARCGIS_URL = 'https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_Aggregate/FeatureServer/0/query';
 const MAX_RECORDS = 1000;
-
 let currentFeatures = [];
-let sortCol = null;
-let sortDir = 1;
+let sortCol = null, sortDir = 1;
 
+// ── KEY MANAGEMENT ────────────────────────────────────────────────────────────
+function loadKey() {
+  const k = localStorage.getItem('mpq_api_key');
+  if (k) {
+    document.getElementById('setupScreen').classList.remove('visible');
+    document.getElementById('keyLabel').textContent = 'Key: …' + k.slice(-4);
+  } else {
+    document.getElementById('setupScreen').classList.add('visible');
+  }
+  return k;
+}
+
+function saveKey() {
+  const val = document.getElementById('keyInput').value.trim();
+  const errEl = document.getElementById('setupError');
+  if (!val.startsWith('sk-ant-')) {
+    errEl.style.display = 'block';
+    errEl.textContent = 'Key should start with sk-ant- — check your Anthropic console.';
+    return;
+  }
+  errEl.style.display = 'none';
+  localStorage.setItem('mpq_api_key', val);
+  loadKey();
+}
+
+function changeKey() {
+  document.getElementById('keyInput').value = '';
+  document.getElementById('setupScreen').classList.add('visible');
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────────────────
 function setStatus(msg, type) {
-  const bar = document.getElementById('statusBar');
-  bar.className = type;
-  bar.innerHTML = (type === 'info' ? '<div class="spinner"></div>' : '') + msg;
+  const b = document.getElementById('statusBar');
+  b.className = type;
+  b.innerHTML = (type==='info'?'<div class="spinner"></div>':'')+msg;
 }
-function clearStatus() { const b = document.getElementById('statusBar'); b.className = ''; b.innerHTML = ''; }
-function setExample(el) { document.getElementById('queryInput').value = el.textContent; }
+function clearStatus() { const b=document.getElementById('statusBar'); b.className=''; b.innerHTML=''; }
+function setExample(el) { document.getElementById('queryInput').value=el.textContent; }
 function clearAll() {
-  document.getElementById('queryInput').value = '';
-  document.getElementById('queryTranslation').style.display = 'none';
-  document.getElementById('resultsPanel').style.display = 'none';
-  clearStatus(); currentFeatures = [];
+  document.getElementById('queryInput').value='';
+  document.getElementById('queryTranslation').style.display='none';
+  document.getElementById('resultsPanel').style.display='none';
+  clearStatus(); currentFeatures=[];
 }
-function fmt$(n) { if (n == null || isNaN(n)) return '—'; return '$' + Number(n).toLocaleString(); }
-function fmtAcres(n) { if (n == null || isNaN(n)) return '—'; return Number(n).toFixed(2) + ' ac'; }
+function fmt$(n) { if(n==null||isNaN(n))return'—'; return'$'+Number(n).toLocaleString(); }
+function fmtAcres(n) { if(n==null||isNaN(n))return'—'; return Number(n).toFixed(2)+' ac'; }
 
+// ── API CALLS ─────────────────────────────────────────────────────────────────
 async function translateQuery(query) {
+  const apiKey = localStorage.getItem('mpq_api_key');
+  if (!apiKey) { changeKey(); throw new Error('No API key set'); }
   const resp = await fetch('/api/translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query })
+    body: JSON.stringify({ query, apiKey })
   });
-  if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error || `Error ${resp.status}`); }
+  if (!resp.ok) { const e=await resp.json().catch(()=>({})); throw new Error(e.error||`Error ${resp.status}`); }
   return resp.json();
 }
 
 async function queryParcels(where, outFields, orderByFields) {
   const params = new URLSearchParams({
-    where,
-    outFields,
-    orderByFields: orderByFields || 'EMV_TOTAL DESC',
+    where, outFields,
+    orderByFields: orderByFields||'EMV_TOTAL DESC',
     returnGeometry: 'true',
     resultRecordCount: MAX_RECORDS,
     f: 'geojson'
@@ -187,83 +291,71 @@ async function queryParcels(where, outFields, orderByFields) {
   const resp = await fetch(`${ARCGIS_URL}?${params}`);
   if (!resp.ok) throw new Error(`ArcGIS error ${resp.status}`);
   const data = await resp.json();
-  if (data.error) throw new Error(data.error.message || 'ArcGIS query failed');
-  return data.features || [];
+  if (data.error) throw new Error(data.error.message||'ArcGIS query failed');
+  return data.features||[];
 }
 
 async function runQuery() {
   const q = document.getElementById('queryInput').value.trim();
   if (!q) return;
-  document.getElementById('runBtn').disabled = true;
-  document.getElementById('resultsPanel').style.display = 'none';
-  document.getElementById('queryTranslation').style.display = 'none';
-  document.getElementById('kmlBtn').disabled = true;
-
+  document.getElementById('runBtn').disabled=true;
+  document.getElementById('resultsPanel').style.display='none';
+  document.getElementById('queryTranslation').style.display='none';
+  document.getElementById('kmlBtn').disabled=true;
   try {
-    setStatus('Asking Claude to translate your query…', 'info');
+    setStatus('Asking Claude to translate your query…','info');
     const t = await translateQuery(q);
-    document.getElementById('translationText').textContent = t.explanation;
-    document.getElementById('whereClause').textContent = 'WHERE ' + t.where;
-    document.getElementById('queryTranslation').style.display = 'block';
-
-    setStatus('Fetching parcels from MetroGIS…', 'info');
+    document.getElementById('translationText').textContent=t.explanation;
+    document.getElementById('whereClause').textContent='WHERE '+t.where;
+    document.getElementById('queryTranslation').style.display='block';
+    setStatus('Fetching parcels from MetroGIS…','info');
     const features = await queryParcels(t.where, t.outFields, t.orderByFields);
-    currentFeatures = features;
-
+    currentFeatures=features;
     if (!features.length) {
       clearStatus();
-      document.getElementById('resultsPanel').style.display = 'flex';
-      document.getElementById('tableContainer').innerHTML = '<div class="no-results">No parcels matched. Try broadening your criteria.</div>';
-      document.getElementById('resultsMeta').textContent = '0 results';
+      document.getElementById('resultsPanel').style.display='flex';
+      document.getElementById('tableContainer').innerHTML='<div class="no-results">No parcels matched. Try broadening your criteria.</div>';
+      document.getElementById('resultsMeta').textContent='0 results';
       return;
     }
-
     setStatus(`${features.length} parcel${features.length===1?'':'s'} returned${features.length===MAX_RECORDS?' (limit '+MAX_RECORDS+')':''}`, 'success');
     setTimeout(clearStatus, 3000);
     renderTable(features);
-    document.getElementById('resultsMeta').innerHTML = `<span>${features.length.toLocaleString()}</span> parcels${features.length===MAX_RECORDS?' <small style="color:var(--amber)">(capped at '+MAX_RECORDS+')</small>':''}`;
-    document.getElementById('resultsPanel').style.display = 'flex';
-    document.getElementById('kmlBtn').disabled = false;
-    sortCol = null; sortDir = 1;
+    document.getElementById('resultsMeta').innerHTML=`<span>${features.length.toLocaleString()}</span> parcels${features.length===MAX_RECORDS?' <small style="color:var(--amber)">(capped at '+MAX_RECORDS+')</small>':''}`;
+    document.getElementById('resultsPanel').style.display='flex';
+    document.getElementById('kmlBtn').disabled=false;
+    sortCol=null; sortDir=1;
   } catch(e) {
-    setStatus('Error: ' + e.message, 'error');
+    setStatus('Error: '+e.message,'error');
   } finally {
-    document.getElementById('runBtn').disabled = false;
+    document.getElementById('runBtn').disabled=false;
   }
 }
 
+// ── TABLE ─────────────────────────────────────────────────────────────────────
 const COLS = [
-  { key: 'CTU_NAME', label: 'City' },
-  { key: 'CO_NAME', label: 'County' },
-  { key: 'USECLASS1', label: 'Use Class' },
-  { key: 'ACRES_POLY', label: 'Acres' },
-  { key: 'EMV_LAND', label: 'Land EMV' },
-  { key: 'EMV_BLDG', label: 'Bldg EMV' },
-  { key: 'EMV_TOTAL', label: 'Total EMV' },
-  { key: '_ratio', label: 'Bldg %' },
-  { key: 'YEAR_BUILT', label: 'Yr Built' },
-  { key: 'SALE_VALUE', label: 'Last Sale' },
-  { key: 'OWNER_NAME', label: 'Owner' },
-  { key: 'PIN', label: 'PIN' },
+  {key:'CTU_NAME',label:'City'},{key:'CO_NAME',label:'County'},{key:'USECLASS1',label:'Use Class'},
+  {key:'ACRES_POLY',label:'Acres'},{key:'EMV_LAND',label:'Land EMV'},{key:'EMV_BLDG',label:'Bldg EMV'},
+  {key:'EMV_TOTAL',label:'Total EMV'},{key:'_ratio',label:'Bldg %'},{key:'YEAR_BUILT',label:'Yr Built'},
+  {key:'SALE_VALUE',label:'Last Sale'},{key:'OWNER_NAME',label:'Owner'},{key:'PIN',label:'PIN'},
 ];
-
 function renderTable(features, sk, dir) {
   let data = features.map(f => {
-    const p = f.properties;
-    const ratio = (p.EMV_TOTAL > 0 && p.EMV_BLDG != null) ? (p.EMV_BLDG / p.EMV_TOTAL) : null;
-    return { ...p, _ratio: ratio, _geom: f.geometry };
+    const p=f.properties;
+    const ratio=(p.EMV_TOTAL>0&&p.EMV_BLDG!=null)?(p.EMV_BLDG/p.EMV_TOTAL):null;
+    return {...p,_ratio:ratio,_geom:f.geometry};
   });
   if (sk) {
-    data.sort((a,b) => {
-      let va = a[sk], vb = b[sk];
-      if (va==null) va = sk==='_ratio' ? -Infinity : (typeof vb==='string'?'':'');
-      if (vb==null) vb = sk==='_ratio' ? -Infinity : (typeof va==='string'?'':'');
-      if (typeof va==='string') va=va.toLowerCase();
-      if (typeof vb==='string') vb=vb.toLowerCase();
+    data.sort((a,b)=>{
+      let va=a[sk],vb=b[sk];
+      if(va==null) va=typeof vb==='string'?'': -Infinity;
+      if(vb==null) vb=typeof va==='string'?'': -Infinity;
+      if(typeof va==='string') va=va.toLowerCase();
+      if(typeof vb==='string') vb=vb.toLowerCase();
       return (va<vb?-1:va>vb?1:0)*dir;
     });
   }
-  const html = `<div class="table-wrap"><table>
+  const html=`<div class="table-wrap"><table>
     <thead><tr>${COLS.map(c=>`<th onclick="sortBy('${c.key}')" class="${sortCol===c.key?'sorted':''}">${c.label}${sortCol===c.key?(sortDir>0?' ↑':' ↓'):''}</th>`).join('')}</tr></thead>
     <tbody>${data.map(p=>{
       const ratio=p._ratio;
@@ -280,96 +372,64 @@ function renderTable(features, sk, dir) {
         <td><span class="val-ratio ${rClass}">${rStr}</span></td>
         <td style="font-family:var(--mono);font-size:11px">${p.YEAR_BUILT||'—'}</td>
         <td class="val-money">${fmt$(p.SALE_VALUE)}</td>
-        <td style="font-size:11px;color:var(--text-muted);max-width:150px;overflow:hidden;text-overflow:ellipsis">${p.OWNER_NAME||'—'}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${p.OWNER_NAME||'—'}</td>
         <td style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">${p.PIN||'—'}</td>
       </tr>`;
     }).join('')}</tbody>
   </table></div>`;
-  document.getElementById('tableContainer').innerHTML = html;
+  document.getElementById('tableContainer').innerHTML=html;
 }
-
 function sortBy(key) {
-  if (sortCol===key) sortDir*=-1; else { sortCol=key; sortDir=1; }
-  renderTable(currentFeatures, sortCol, sortDir);
+  if(sortCol===key) sortDir*=-1; else{sortCol=key;sortDir=1;}
+  renderTable(currentFeatures,sortCol,sortDir);
 }
 
-// ── KML EXPORT ─────────────────────────────────────────────────────────────────
+// ── KML EXPORT ────────────────────────────────────────────────────────────────
 function geomToKML(geom) {
   if (!geom) return '';
-  if (geom.type === 'Polygon') {
-    return ringSetToKML(geom.coordinates);
-  } else if (geom.type === 'MultiPolygon') {
-    return `<MultiGeometry>${geom.coordinates.map(rings => ringSetToKML(rings)).join('')}</MultiGeometry>`;
-  }
+  if (geom.type==='Polygon') return ringSetToKML(geom.coordinates);
+  if (geom.type==='MultiPolygon') return `<MultiGeometry>${geom.coordinates.map(r=>ringSetToKML(r)).join('')}</MultiGeometry>`;
   return '';
 }
-
 function ringSetToKML(rings) {
-  if (!rings || !rings.length) return '';
-  const outer = rings[0].map(c=>`${c[0]},${c[1]},0`).join(' ');
-  let kml = `<Polygon><outerBoundaryIs><LinearRing><coordinates>${outer}</coordinates></LinearRing></outerBoundaryIs>`;
-  for (let i=1;i<rings.length;i++) {
-    const inner = rings[i].map(c=>`${c[0]},${c[1]},0`).join(' ');
-    kml += `<innerBoundaryIs><LinearRing><coordinates>${inner}</coordinates></LinearRing></innerBoundaryIs>`;
-  }
-  kml += `</Polygon>`;
-  return kml;
+  if (!rings||!rings.length) return '';
+  const outer=rings[0].map(c=>`${c[0]},${c[1]},0`).join(' ');
+  let kml=`<Polygon><outerBoundaryIs><LinearRing><coordinates>${outer}</coordinates></LinearRing></outerBoundaryIs>`;
+  for(let i=1;i<rings.length;i++){const inner=rings[i].map(c=>`${c[0]},${c[1]},0`).join(' ');kml+=`<innerBoundaryIs><LinearRing><coordinates>${inner}</coordinates></LinearRing></innerBoundaryIs>`;}
+  return kml+'</Polygon>';
 }
-
 function exportKML() {
   if (!currentFeatures.length) return;
-  const placemarks = currentFeatures.map(f => {
-    const p = f.properties;
-    const ratio = (p.EMV_TOTAL > 0 && p.EMV_BLDG != null) ? ((p.EMV_BLDG/p.EMV_TOTAL)*100).toFixed(1)+'%' : 'N/A';
-    const addr = [p.OWN_ADD_L1, p.CTU_NAME, p.STATE_CODE, p.ZIP].filter(Boolean).join(', ');
-    const name = [p.CTU_NAME, p.USECLASS1, p.PIN].filter(Boolean).join(' · ');
-    const saleDate = p.SALE_DATE ? new Date(p.SALE_DATE).toLocaleDateString() : '—';
+  const placemarks=currentFeatures.map(f=>{
+    const p=f.properties;
+    const ratio=(p.EMV_TOTAL>0&&p.EMV_BLDG!=null)?((p.EMV_BLDG/p.EMV_TOTAL)*100).toFixed(1)+'%':'N/A';
+    const addr=[p.OWN_ADD_L1,p.CTU_NAME,p.ZIP].filter(Boolean).join(', ');
+    const saleDate=p.SALE_DATE?new Date(p.SALE_DATE).toLocaleDateString():'—';
+    const name=[p.CTU_NAME,p.USECLASS1,p.PIN].filter(Boolean).join(' · ');
     return `<Placemark>
       <name><![CDATA[${name}]]></name>
-      <description><![CDATA[
-        <b>Owner:</b> ${p.OWNER_NAME||'—'}<br>
-        <b>Address:</b> ${addr||'—'}<br>
-        <b>City:</b> ${p.CTU_NAME||'—'}<br>
-        <b>County:</b> ${p.CO_NAME||'—'}<br>
-        <b>Use Class:</b> ${p.USECLASS1||'—'}<br>
-        <b>Acres:</b> ${p.ACRES_POLY!=null?Number(p.ACRES_POLY).toFixed(2):'—'}<br>
-        <b>Land EMV:</b> ${fmt$(p.EMV_LAND)}<br>
-        <b>Building EMV:</b> ${fmt$(p.EMV_BLDG)}<br>
-        <b>Total EMV:</b> ${fmt$(p.EMV_TOTAL)}<br>
-        <b>Bldg/Total:</b> ${ratio}<br>
-        <b>Year Built:</b> ${p.YEAR_BUILT||'—'}<br>
-        <b>Last Sale:</b> ${fmt$(p.SALE_VALUE)} on ${saleDate}<br>
-        <b>PIN:</b> ${p.PIN||'—'}
-      ]]></description>
+      <description><![CDATA[<b>Owner:</b> ${p.OWNER_NAME||'—'}<br><b>Address:</b> ${addr||'—'}<br><b>City:</b> ${p.CTU_NAME||'—'}<br><b>County:</b> ${p.CO_NAME||'—'}<br><b>Use Class:</b> ${p.USECLASS1||'—'}<br><b>Acres:</b> ${p.ACRES_POLY!=null?Number(p.ACRES_POLY).toFixed(2):'—'}<br><b>Land EMV:</b> ${fmt$(p.EMV_LAND)}<br><b>Building EMV:</b> ${fmt$(p.EMV_BLDG)}<br><b>Total EMV:</b> ${fmt$(p.EMV_TOTAL)}<br><b>Bldg/Total:</b> ${ratio}<br><b>Year Built:</b> ${p.YEAR_BUILT||'—'}<br><b>Last Sale:</b> ${fmt$(p.SALE_VALUE)} on ${saleDate}<br><b>PIN:</b> ${p.PIN||'—'}]]></description>
       <styleUrl>#parcel</styleUrl>
       ${geomToKML(f.geometry)}
     </Placemark>`;
   }).join('');
-
-  const queryText = document.getElementById('queryInput').value.trim();
-  const kml = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    <name><![CDATA[${queryText}]]></name>
-    <description><![CDATA[${currentFeatures.length} parcels · ${new Date().toLocaleDateString()}]]></description>
-    <Style id="parcel">
-      <LineStyle><color>ff4f8ef7</color><width>1.5</width></LineStyle>
-      <PolyStyle><color>334f8ef7</color><fill>1</fill></PolyStyle>
-    </Style>
-    ${placemarks}
-  </Document>
-</kml>`;
-
-  const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `parcel-query-${Date.now()}.kml`;
+  const kml=`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+  <name><![CDATA[${document.getElementById('queryInput').value.trim()}]]></name>
+  <description><![CDATA[${currentFeatures.length} parcels · ${new Date().toLocaleDateString()}]]></description>
+  <Style id="parcel"><LineStyle><color>ff4f8ef7</color><width>1.5</width></LineStyle><PolyStyle><color>334f8ef7</color><fill>1</fill></PolyStyle></Style>
+  ${placemarks}
+</Document></kml>`;
+  const blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`parcel-query-${Date.now()}.kml`;
   a.click();
 }
 
-document.getElementById('queryInput').addEventListener('keydown', e => {
-  if (e.key==='Enter' && (e.metaKey||e.ctrlKey)) runQuery();
-});
+document.getElementById('queryInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))runQuery();});
+document.getElementById('keyInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveKey();});
+loadKey();
 </script>
 </body>
 </html>
