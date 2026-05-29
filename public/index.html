@@ -186,7 +186,7 @@
   <div class="query-panel">
     <div class="panel-header"><div class="panel-dot"></div>Natural Language Query</div>
     <div class="query-input-row">
-      <textarea id="queryInput" id="queryPlaceholder" placeholder="e.g. Commercial parcels in Saint Paul where building value is less than 20% of total value…" rows="2"></textarea>
+      <textarea id="queryInput" placeholder="e.g. Commercial parcels in Saint Paul where building value is less than 20% of total value…" rows="2"></textarea>
       <div class="query-actions">
         <button class="btn-primary" id="runBtn" onclick="runQuery()">Run Query</button>
         <button class="btn-ghost" onclick="clearAll()">Clear</button>
@@ -348,7 +348,7 @@ async function runQuery() {
     document.getElementById('translationText').textContent=t.explanation;
     document.getElementById('whereClause').textContent='WHERE '+t.where;
     document.getElementById('queryTranslation').style.display='block';
-    setStatus('Fetching parcels from MetroGIS…','info');
+    setStatus(`Fetching parcels from ${currentDataset === 'wi' ? 'Wisconsin Statewide' : 'MetroGIS'}…`,'info');
     const features = await queryParcels(t.where, t.outFields, t.orderByFields);
     currentFeatures=features;
     if (!features.length) {
@@ -358,10 +358,11 @@ async function runQuery() {
       document.getElementById('resultsMeta').textContent='0 results';
       return;
     }
-    setStatus(`${features.length} parcel${features.length===1?'':'s'} returned${features.length===MAX_RECORDS?' (limit '+MAX_RECORDS+')':''}`, 'success');
+    const recLimit = currentDataset === 'wi' ? WI_MAX_RECORDS : MAX_RECORDS;
+    setStatus(`${features.length} parcel${features.length===1?'':'s'} returned${features.length===recLimit?' (limit '+recLimit+')':''}`, 'success');
     setTimeout(clearStatus, 3000);
     renderTable(features);
-    document.getElementById('resultsMeta').innerHTML=`<span>${features.length.toLocaleString()}</span> parcels${features.length===MAX_RECORDS?' <small style="color:var(--amber)">(capped at '+MAX_RECORDS+')</small>':''}`;
+    document.getElementById('resultsMeta').innerHTML=`<span>${features.length.toLocaleString()}</span> parcels${features.length===recLimit?' <small style="color:var(--amber)">(capped at '+recLimit+')</small>':''}`;
     document.getElementById('resultsPanel').style.display='flex';
     document.getElementById('kmlBtn').disabled=false;
     document.getElementById('xlsxBtn').disabled=false;
