@@ -157,7 +157,29 @@ For building-to-total ratio: (emv_bldg * 1.0 / emv_total)
 For underutilized: emv_total > 0 AND (emv_bldg * 1.0 / emv_total) < 0.20
 For vacant: emv_bldg = 0 OR emv_bldg IS NULL
 USECLASS1 matching: use LIKE, e.g. useclass1 LIKE '%COMMERCIAL%', useclass1 LIKE '%INDUSTRIAL%'
-City matching: Use BOTH fields to be safe: (ctu_name LIKE '%Rochester%' OR postcomm LIKE '%Rochester%'). This catches counties where ctu_name is populated and counties where only postcomm is populated. Always uppercase the city name search value.
+City matching: Use BOTH fields: (ctu_name LIKE '%Rochester%' OR postcomm LIKE '%Rochester%'). However, many counties do not populate either field. Use this county-to-city lookup to filter by co_name when the city is well-known:
+- Duluth → co_name = 'St. Louis'
+- Rochester → co_name = 'Olmsted'
+- Mankato → co_name = 'Blue Earth'
+- St. Cloud → co_name = 'Stearns'
+- Moorhead → co_name = 'Clay'
+- Brainerd → co_name = 'Crow Wing'
+- Bemidji → co_name = 'Beltrami'
+- Hibbing → co_name = 'St. Louis'
+- Virginia → co_name = 'St. Louis'
+- Worthington → co_name = 'Nobles'
+- Winona → co_name = 'Winona'
+- Faribault → co_name = 'Rice'
+- Owatonna → co_name = 'Steele'
+- Austin → co_name = 'Mower'
+- Marshall → co_name = 'Lyon'
+- Willmar → co_name = 'Kandiyohi'
+- Alexandria → co_name = 'Douglas'
+- Fergus Falls → co_name = 'Otter Tail'
+- Detroit Lakes → co_name = 'Becker'
+- Thief River Falls → co_name = 'Pennington'
+When a user names a city, ALWAYS include BOTH the ctu_name/postcomm filter AND the co_name filter combined with OR so results are returned even if city fields are null: ((ctu_name LIKE '%Duluth%' OR postcomm LIKE '%Duluth%') OR co_name = 'St. Louis')
+In your explanation, note that city-level field coverage varies by county and results may include the full county.
 County matching: co_name = 'Olmsted' (mixed case)
 Note: many fields may be null depending on county data quality
 ` : `
