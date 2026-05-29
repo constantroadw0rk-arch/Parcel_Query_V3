@@ -122,7 +122,43 @@ export default async function handler(req, res) {
     }
   }
 
-  const FIELD_GUIDE = `
+  // MN Statewide uses same field guide as MetroGIS (identical schema, lowercase fields)
+  // Just falls through to the same translator below — dataset flag handled in frontend
+
+  const FIELD_GUIDE = dataset === 'mn_state' ? `
+Available fields in the Minnesota Statewide Parcel dataset (opt-in, 59 counties):
+- county_pin: County parcel ID (string)
+- state_pin: State parcel ID (string)
+- co_name: County name (mixed case, e.g. 'Lyon', 'McLeod', 'Olmsted', 'St. Louis', 'Crow Wing')
+- ctu_name: City/township name (mixed case, may be null for some counties)
+- zip: ZIP code (string)
+- owner_name: Owner name
+- own_add_l1: Owner address line 1
+- homestead: Homestead status — 'Yes' or 'No'
+- acres_poly: Parcel area in acres (numeric)
+- acres_deed: Deeded acres (numeric)
+- emv_land: Estimated market value of land only (numeric, may be null)
+- emv_bldg: Estimated market value of building/improvements (numeric, may be null)
+- emv_total: Total estimated market value (numeric)
+- tax_year: Tax year (numeric)
+- tax_capac: Tax capacity (numeric)
+- total_tax: Total tax (numeric)
+- useclass1: Primary use class (e.g. '1a RESIDENTIAL SINGLE UNIT', '2a AGRICULTURAL', '3a COMMERCIAL', '4a INDUSTRIAL', '5e Municipal-Public Service')
+- fin_sq_ft: Finished square footage (numeric)
+- year_built: Year built (numeric)
+- sale_date: Last sale date (epoch milliseconds)
+- sale_value: Last sale value (numeric)
+- school_dst: School district
+- wshd_dst: Watershed district
+
+For building-to-total ratio: (emv_bldg * 1.0 / emv_total)
+For underutilized: emv_total > 0 AND (emv_bldg * 1.0 / emv_total) < 0.20
+For vacant: emv_bldg = 0 OR emv_bldg IS NULL
+USECLASS1 matching: use LIKE, e.g. useclass1 LIKE '%COMMERCIAL%', useclass1 LIKE '%INDUSTRIAL%'
+City matching: use ctu_name LIKE '%Rochester%' (may be null for some counties, fall back to co_name)
+County matching: co_name = 'Olmsted' (mixed case)
+Note: many fields may be null depending on county data quality
+` : `
 Available fields in the MetroGIS 7-County Parcel dataset:
 - PIN: Parcel ID (string)
 - CO_NAME: County name — one of: Anoka, Carver, Dakota, Hennepin, Ramsey, Scott, Washington
@@ -157,14 +193,14 @@ USECLASS1 matching: use LIKE, e.g. USECLASS1 LIKE '%COMMERCIAL%', USECLASS1 LIKE
 CTU_NAME matching: use LIKE, e.g. CTU_NAME LIKE '%Saint Paul%'
 `;
 
-  const systemPrompt = `You are a GIS data analyst. Given a natural language question about Twin Cities metro tax parcels, respond ONLY with valid JSON — no markdown, no explanation, no preamble, no code fences.
+  const systemPrompt = `You are a GIS data analyst. Given a natural language question about ${dataset === 'mn_state' ? 'Minnesota statewide' : 'Twin Cities metro'} tax parcels, respond ONLY with valid JSON — no markdown, no explanation, no preamble, no code fences.
 
 ${FIELD_GUIDE}
 
 Respond with exactly this JSON shape:
 {
   "where": "<valid ArcGIS SQL WHERE clause>",
-  "outFields": "PIN,CO_NAME,CTU_NAME,USECLASS1,EMV_LAND,EMV_BLDG,EMV_TOTAL,ACRES_POLY,OWNER_NAME,OWN_ADD_L1,ZIP,YEAR_BUILT,SALE_VALUE,SALE_DATE",
+  "outFields": "${dataset === 'mn_state' ? 'county_pin,co_name,ctu_name,useclass1,emv_land,emv_bldg,emv_total,acres_poly,owner_name,own_add_l1,zip,year_built,sale_value,sale_date' : 'PIN,CO_NAME,CTU_NAME,USECLASS1,EMV_LAND,EMV_BLDG,EMV_TOTAL,ACRES_POLY,OWNER_NAME,OWN_ADD_L1,ZIP,YEAR_BUILT,SALE_VALUE,SALE_DATE'}",
   "orderByFields": "<field ASC or DESC>",
   "explanation": "<one sentence describing what this query returns>"
 }
