@@ -33,7 +33,7 @@ For commercial: PROPCLASS = '2'
 For industrial/manufacturing: PROPCLASS = '3'
 For agricultural: PROPCLASS = '4'
 For residential: PROPCLASS = '1'
-County/city matching: use LIKE, e.g. CONAME LIKE '%Milwaukee%', PLACENAME LIKE '%Madison%'
+County/city matching: use exact match or trailing wildcard only — NEVER leading wildcards. e.g. CONAME = 'Milwaukee', PLACENAME = 'Green Bay', or CONAME LIKE 'Mil%'. Never use LIKE '%value%' — ArcGIS blocks leading wildcards on large datasets.
 `;
 
 
