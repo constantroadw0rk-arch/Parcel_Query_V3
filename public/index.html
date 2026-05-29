@@ -174,6 +174,7 @@
     <div class="dataset-toggle">
       <button class="dataset-btn active" id="btnMN" onclick="setDataset('mn')">MN 7-County</button>
       <button class="dataset-btn" id="btnWI" onclick="setDataset('wi')">Wisconsin</button>
+      <button class="dataset-btn" id="btnMNS" onclick="setDataset('mn_state')">MN Statewide</button>
     </div>
     <div class="key-status" onclick="changeKey()" title="Click to change API key">
     <div class="key-dot"></div>
@@ -202,6 +203,14 @@
       <span class="example-chip wi-example" style="display:none" onclick="setExample(this)">Manufacturing parcels in Dane County over 5 acres</span>
       <span class="example-chip wi-example" style="display:none" onclick="setExample(this)">Vacant parcels in Green Bay with low improvement value</span>
       <span class="example-chip wi-example" style="display:none" onclick="setExample(this)">Agricultural land in Brown County over 50 acres</span>
+      <span class="example-chip mns-example" style="display:none" onclick="setExample(this)">Commercial parcels in Rochester over 2 acres</span>
+      <span class="example-chip mns-example" style="display:none" onclick="setExample(this)">Industrial parcels in Duluth with low building value</span>
+      <span class="example-chip mns-example" style="display:none" onclick="setExample(this)">Vacant land in Olmsted County under $100K total value</span>
+      <span class="example-chip mns-example" style="display:none" onclick="setExample(this)">Agricultural parcels in Crow Wing County over 40 acres</span>
+    </div>
+    <div id="coverageNotice" style="display:none;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:#1e1a0e;font-family:var(--mono);font-size:11px;color:var(--amber)">
+      <span>⚠</span>
+      <span>Opt-in dataset — 59 of 87 Minnesota counties. Coverage and field completeness varies by county. Metro area counties are better served by the MN 7-County dataset.</span>
     </div>
   </div>
 
@@ -240,17 +249,25 @@ let sortCol = null, sortDir = 1;
 let currentDataset = 'mn';
 
 const WI_ARCGIS_URL = 'https://services3.arcgis.com/n6uYoouQZW75n5WI/arcgis/rest/services/Wisconsin_Statewide_Parcels/FeatureServer/0/query';
+const MN_STATE_ARCGIS_URL = 'https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_mngeo/plan_parcels_open/FeatureServer/1/query';
+const MN_STATE_MAX_RECORDS = 1000;
 const WI_MAX_RECORDS = 2500;
 
 function setDataset(ds) {
   currentDataset = ds;
   document.getElementById('btnMN').classList.toggle('active', ds === 'mn');
   document.getElementById('btnWI').classList.toggle('active', ds === 'wi');
+  document.getElementById('btnMNS').classList.toggle('active', ds === 'mn_state');
   document.querySelectorAll('.mn-example').forEach(el => el.style.display = ds === 'mn' ? '' : 'none');
   document.querySelectorAll('.wi-example').forEach(el => el.style.display = ds === 'wi' ? '' : 'none');
-  document.getElementById('queryInput').placeholder = ds === 'mn'
-    ? 'e.g. Commercial parcels in Saint Paul where building value is less than 20% of total value…'
-    : 'e.g. Commercial parcels in Milwaukee County with low improvement value…';
+  document.querySelectorAll('.mns-example').forEach(el => el.style.display = ds === 'mn_state' ? '' : 'none');
+  const notice = document.getElementById('coverageNotice');
+  if (notice) notice.style.display = ds === 'mn_state' ? 'flex' : 'none';
+  document.getElementById('queryInput').placeholder = ds === 'wi'
+    ? 'e.g. Commercial parcels in Milwaukee County with low improvement value…'
+    : ds === 'mn_state'
+    ? 'e.g. Commercial parcels in Rochester or industrial land in Duluth over 5 acres…'
+    : 'e.g. Commercial parcels in Saint Paul where building value is less than 20% of total value…';
   clearAll();
 }
 
@@ -316,9 +333,10 @@ async function translateQuery(query) {
 
 async function queryParcels(where, outFields, orderByFields) {
   const isWI = currentDataset === 'wi';
-  const url = isWI ? WI_ARCGIS_URL : ARCGIS_URL;
-  const maxRec = isWI ? WI_MAX_RECORDS : MAX_RECORDS;
-  const defaultOrder = isWI ? 'CNTASSDVALUE DESC' : 'EMV_TOTAL DESC';
+  const isMNS = currentDataset === 'mn_state';
+  const url = isWI ? WI_ARCGIS_URL : isMNS ? MN_STATE_ARCGIS_URL : ARCGIS_URL;
+  const maxRec = isWI ? WI_MAX_RECORDS : isMNS ? MN_STATE_MAX_RECORDS : MAX_RECORDS;
+  const defaultOrder = isWI ? 'CNTASSDVALUE DESC' : isMNS ? 'emv_total DESC' : 'EMV_TOTAL DESC';
   const params = new URLSearchParams({
     where, outFields,
     orderByFields: orderByFields || defaultOrder,
@@ -348,7 +366,7 @@ async function runQuery() {
     document.getElementById('translationText').textContent=t.explanation;
     document.getElementById('whereClause').textContent='WHERE '+t.where;
     document.getElementById('queryTranslation').style.display='block';
-    setStatus(`Fetching parcels from ${currentDataset === 'wi' ? 'Wisconsin Statewide' : 'MetroGIS'}…`,'info');
+    setStatus(`Fetching parcels from ${currentDataset === 'wi' ? 'Wisconsin Statewide' : currentDataset === 'mn_state' ? 'MN Statewide (Opt-In)' : 'MetroGIS'}…`,'info');
     const features = await queryParcels(t.where, t.outFields, t.orderByFields);
     currentFeatures=features;
     if (!features.length) {
@@ -358,7 +376,7 @@ async function runQuery() {
       document.getElementById('resultsMeta').textContent='0 results';
       return;
     }
-    const recLimit = currentDataset === 'wi' ? WI_MAX_RECORDS : MAX_RECORDS;
+    const recLimit = currentDataset === 'wi' ? WI_MAX_RECORDS : currentDataset === 'mn_state' ? MN_STATE_MAX_RECORDS : MAX_RECORDS;
     setStatus(`${features.length} parcel${features.length===1?'':'s'} returned${features.length===recLimit?' (limit '+recLimit+')':''}`, 'success');
     setTimeout(clearStatus, 3000);
     renderTable(features);
@@ -381,6 +399,12 @@ const MN_COLS = [
   {key:'EMV_TOTAL',label:'Total EMV'},{key:'_ratio',label:'Bldg %'},{key:'YEAR_BUILT',label:'Yr Built'},
   {key:'SALE_VALUE',label:'Last Sale'},{key:'OWNER_NAME',label:'Owner'},{key:'PIN',label:'PIN'},
 ];
+const MN_STATE_COLS = [
+  {key:'ctu_name',label:'City'},{key:'co_name',label:'County'},{key:'useclass1',label:'Use Class'},
+  {key:'acres_poly',label:'Acres'},{key:'emv_land',label:'Land EMV'},{key:'emv_bldg',label:'Bldg EMV'},
+  {key:'emv_total',label:'Total EMV'},{key:'_ratio',label:'Bldg %'},{key:'year_built',label:'Yr Built'},
+  {key:'sale_value',label:'Last Sale'},{key:'owner_name',label:'Owner'},{key:'county_pin',label:'PIN'},
+];
 const WI_COLS = [
   {key:'PLACENAME',label:'City'},{key:'CONAME',label:'County'},{key:'PROPCLASS',label:'Prop Class'},
   {key:'GISACRES',label:'Acres'},{key:'LNDVALUE',label:'Land Value'},{key:'IMPVALUE',label:'Impr Value'},
@@ -391,12 +415,13 @@ const PROPCLASS_LABELS = {'1':'Residential','2':'Commercial','3':'Manufacturing'
 
 function renderTable(features, sk, dir) {
   const isWI = currentDataset === 'wi';
-  const COLS = isWI ? WI_COLS : MN_COLS;
+  const isMNS = currentDataset === 'mn_state';
+  const COLS = isWI ? WI_COLS : isMNS ? MN_STATE_COLS : MN_COLS;
   let data = features.map(f => {
     const p=f.properties;
-    const landVal = isWI ? p.LNDVALUE : p.EMV_LAND;
-    const bldgVal = isWI ? p.IMPVALUE : p.EMV_BLDG;
-    const totalVal = isWI ? p.CNTASSDVALUE : p.EMV_TOTAL;
+    const landVal = isWI ? p.LNDVALUE : isMNS ? p.emv_land : p.EMV_LAND;
+    const bldgVal = isWI ? p.IMPVALUE : isMNS ? p.emv_bldg : p.EMV_BLDG;
+    const totalVal = isWI ? p.CNTASSDVALUE : isMNS ? p.emv_total : p.EMV_TOTAL;
     const ratio=(totalVal>0&&bldgVal!=null)?(bldgVal/totalVal):null;
     return {...p,_ratio:ratio,_geom:f.geometry};
   });
@@ -433,6 +458,22 @@ function renderTable(features, sk, dir) {
           <td style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">${p.PARCELID||'—'}</td>
         </tr>`;
       }
+      if (isMNS) {
+        return `<tr>
+          <td>${p.ctu_name||'—'}</td>
+          <td><span class="county-badge">${p.co_name||'—'}</span></td>
+          <td><span class="useclass-badge" title="${p.useclass1||''}">${p.useclass1||'—'}</span></td>
+          <td>${fmtAcres(p.acres_poly)}</td>
+          <td class="val-money">${fmt$(p.emv_land)}</td>
+          <td class="val-money">${fmt$(p.emv_bldg)}</td>
+          <td class="val-money">${fmt$(p.emv_total)}</td>
+          <td><span class="val-ratio ${rClass}">${rStr}</span></td>
+          <td style="font-family:var(--mono);font-size:11px">${p.year_built||'—'}</td>
+          <td class="val-money">${fmt$(p.sale_value)}</td>
+          <td style="font-size:11px;color:var(--text-muted)">${p.owner_name||'—'}</td>
+          <td style="font-family:var(--mono);font-size:10px;color:var(--text-muted)">${p.county_pin||'—'}</td>
+        </tr>`;
+      }
       return `<tr>
         <td>${p.CTU_NAME||'—'}</td>
         <td><span class="county-badge">${p.CO_NAME||'—'}</span></td>
@@ -461,6 +502,7 @@ function sortBy(key) {
 function exportXLSX() {
   if (!currentFeatures.length) return;
   const isWI = currentDataset === 'wi';
+  const isMNS = currentDataset === 'mn_state';
   const rows = currentFeatures.map(f => {
     const p = f.properties;
     if (isWI) {
@@ -484,6 +526,28 @@ function exportXLSX() {
         'ZIP': p.ZIPCODE || '',
         'Tax Roll Year': p.TAXROLLYEAR || '',
         'School District': p.SCHOOLDIST || ''
+      };
+    }
+    if (isMNS) {
+      const ratio = (p.emv_total > 0 && p.emv_bldg != null)
+        ? ((p.emv_bldg / p.emv_total) * 100).toFixed(1) + '%' : 'N/A';
+      return {
+        'PIN': p.county_pin || '',
+        'City': p.ctu_name || '',
+        'County': p.co_name || '',
+        'Use Class': p.useclass1 || '',
+        'Acres': p.acres_poly != null ? Number(p.acres_poly).toFixed(2) : '',
+        'Land EMV': p.emv_land || 0,
+        'Building EMV': p.emv_bldg || 0,
+        'Total EMV': p.emv_total || 0,
+        'Bldg/Total %': ratio,
+        'Year Built': p.year_built || '',
+        'Last Sale ($)': p.sale_value || '',
+        'Owner': p.owner_name || '',
+        'Address': p.own_add_l1 || '',
+        'ZIP': p.zip || '',
+        'School District': p.school_dst || '',
+        'Watershed': p.wshd_dst || ''
       };
     }
     const ratio = (p.EMV_TOTAL > 0 && p.EMV_BLDG != null)
@@ -536,11 +600,16 @@ function exportKML() {
     const addr=[p.OWN_ADD_L1,p.CTU_NAME,p.ZIP].filter(Boolean).join(', ');
     const saleDate=p.SALE_DATE?new Date(p.SALE_DATE).toLocaleDateString():'—';
     const isWI = currentDataset === 'wi';
+    const isMNS = currentDataset === 'mn_state';
     const name = isWI
       ? [p.PLACENAME,p.CONAME,PROPCLASS_LABELS[p.PROPCLASS]||p.PROPCLASS,p.PARCELID].filter(Boolean).join(' · ')
+      : isMNS
+      ? [p.ctu_name,p.co_name,p.useclass1,p.county_pin].filter(Boolean).join(' · ')
       : [p.CTU_NAME,p.USECLASS1,p.PIN].filter(Boolean).join(' · ');
     const desc = isWI
       ? `<b>Owner:</b> ${p.OWNERNME1||'—'}<br><b>Address:</b> ${p.SITEADRESS||'—'}<br><b>City:</b> ${p.PLACENAME||'—'}<br><b>County:</b> ${p.CONAME||'—'}<br><b>Property Class:</b> ${PROPCLASS_LABELS[p.PROPCLASS]||p.PROPCLASS||'—'}<br><b>Acres:</b> ${p.GISACRES!=null?Number(p.GISACRES).toFixed(2):'—'}<br><b>Land Value:</b> ${fmt$(p.LNDVALUE)}<br><b>Improvement Value:</b> ${fmt$(p.IMPVALUE)}<br><b>Total Assessed:</b> ${fmt$(p.CNTASSDVALUE)}<br><b>Fair Market Value:</b> ${fmt$(p.ESTFMKVALUE)}<br><b>Net Tax:</b> ${fmt$(p.NETPRPTA)}<br><b>Parcel ID:</b> ${p.PARCELID||'—'}`
+      : isMNS
+      ? `<b>Owner:</b> ${p.owner_name||'—'}<br><b>Address:</b> ${p.own_add_l1||'—'}<br><b>City:</b> ${p.ctu_name||'—'}<br><b>County:</b> ${p.co_name||'—'}<br><b>Use Class:</b> ${p.useclass1||'—'}<br><b>Acres:</b> ${p.acres_poly!=null?Number(p.acres_poly).toFixed(2):'—'}<br><b>Land EMV:</b> ${fmt$(p.emv_land)}<br><b>Building EMV:</b> ${fmt$(p.emv_bldg)}<br><b>Total EMV:</b> ${fmt$(p.emv_total)}<br><b>Bldg/Total:</b> ${ratio}<br><b>Year Built:</b> ${p.year_built||'—'}<br><b>Last Sale:</b> ${fmt$(p.sale_value)} on ${saleDate}<br><b>PIN:</b> ${p.county_pin||'—'}`
       : `<b>Owner:</b> ${p.OWNER_NAME||'—'}<br><b>Address:</b> ${addr||'—'}<br><b>City:</b> ${p.CTU_NAME||'—'}<br><b>County:</b> ${p.CO_NAME||'—'}<br><b>Use Class:</b> ${p.USECLASS1||'—'}<br><b>Acres:</b> ${p.ACRES_POLY!=null?Number(p.ACRES_POLY).toFixed(2):'—'}<br><b>Land EMV:</b> ${fmt$(p.EMV_LAND)}<br><b>Building EMV:</b> ${fmt$(p.EMV_BLDG)}<br><b>Total EMV:</b> ${fmt$(p.EMV_TOTAL)}<br><b>Bldg/Total:</b> ${ratio}<br><b>Year Built:</b> ${p.YEAR_BUILT||'—'}<br><b>Last Sale:</b> ${fmt$(p.SALE_VALUE)} on ${saleDate}<br><b>PIN:</b> ${p.PIN||'—'}`;
     return `<Placemark>
       <name><![CDATA[${name}]]></name>
