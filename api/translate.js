@@ -60,6 +60,7 @@ Respond with exactly this JSON shape:
 Rules:
 - WHERE must be valid ArcGIS SQL. Use 1=1 if no filter needed.
 - Never use subqueries or unsupported functions.
+- For date comparisons ALWAYS use DATE string format: e.g. SALE_DATE >= DATE '2020-01-01'. NEVER use epoch milliseconds like 1672531200000.
 - For ratios: CNTASSDVALUE > 0 AND (IMPVALUE * 1.0 / CNTASSDVALUE) < 0.15
 - For underutilized: CNTASSDVALUE > 0 AND (IMPVALUE * 1.0 / CNTASSDVALUE) < 0.20
 - PROPCLASS values are strings: '1','2','3','4','5' — always quote them
@@ -130,7 +131,8 @@ Available fields in the Minnesota Statewide Parcel dataset (opt-in, 59 counties)
 - county_pin: County parcel ID (string)
 - state_pin: State parcel ID (string)
 - co_name: County name (mixed case, e.g. 'Lyon', 'McLeod', 'Olmsted', 'St. Louis', 'Crow Wing')
-- ctu_name: City/township name (mixed case, may be null for some counties)
+- ctu_name: City/township/unincorporated area name — MANDATORY per MN GAC standard but may be null if county did not submit properly. Use for city filtering with LIKE on both sides.
+- postcomm: Postal community name (e.g. 'Rochester', 'Duluth') — OPTIONAL fallback if ctu_name is null
 - zip: ZIP code (string)
 - owner_name: Owner name
 - own_add_l1: Owner address line 1
@@ -146,7 +148,7 @@ Available fields in the Minnesota Statewide Parcel dataset (opt-in, 59 counties)
 - useclass1: Primary use class (e.g. '1a RESIDENTIAL SINGLE UNIT', '2a AGRICULTURAL', '3a COMMERCIAL', '4a INDUSTRIAL', '5e Municipal-Public Service')
 - fin_sq_ft: Finished square footage (numeric)
 - year_built: Year built (numeric)
-- sale_date: Last sale date (epoch milliseconds)
+- sale_date: Last sale date — use DATE string format for comparisons, e.g. sale_date >= DATE '2020-01-01'. NEVER use epoch milliseconds.
 - sale_value: Last sale value (numeric)
 - school_dst: School district
 - wshd_dst: Watershed district
@@ -155,7 +157,7 @@ For building-to-total ratio: (emv_bldg * 1.0 / emv_total)
 For underutilized: emv_total > 0 AND (emv_bldg * 1.0 / emv_total) < 0.20
 For vacant: emv_bldg = 0 OR emv_bldg IS NULL
 USECLASS1 matching: use LIKE, e.g. useclass1 LIKE '%COMMERCIAL%', useclass1 LIKE '%INDUSTRIAL%'
-City matching: use ctu_name LIKE '%Rochester%' (may be null for some counties, fall back to co_name)
+City matching: Use BOTH fields to be safe: (ctu_name LIKE '%Rochester%' OR postcomm LIKE '%Rochester%'). This catches counties where ctu_name is populated and counties where only postcomm is populated. Always uppercase the city name search value.
 County matching: co_name = 'Olmsted' (mixed case)
 Note: many fields may be null depending on county data quality
 ` : `
@@ -180,7 +182,7 @@ Available fields in the MetroGIS 7-County Parcel dataset:
 - FIN_SQ_FT: Finished square footage (numeric)
 - YEAR_BUILT: Year built (numeric)
 - NUM_UNITS: Number of units (numeric)
-- SALE_DATE: Last sale date (epoch milliseconds)
+- SALE_DATE: Last sale date — use DATE string format for comparisons, e.g. SALE_DATE >= DATE '2020-01-01', SALE_DATE BETWEEN DATE '2020-01-01' AND DATE '2025-01-01'. NEVER use epoch milliseconds.
 - SALE_VALUE: Last sale value (numeric)
 - GREEN_ACRE: Green acres status ('Yes'/'No')
 - SCHOOL_DST: School district
@@ -200,7 +202,7 @@ ${FIELD_GUIDE}
 Respond with exactly this JSON shape:
 {
   "where": "<valid ArcGIS SQL WHERE clause>",
-  "outFields": "${dataset === 'mn_state' ? 'county_pin,co_name,ctu_name,useclass1,emv_land,emv_bldg,emv_total,acres_poly,owner_name,own_add_l1,zip,year_built,sale_value,sale_date' : 'PIN,CO_NAME,CTU_NAME,USECLASS1,EMV_LAND,EMV_BLDG,EMV_TOTAL,ACRES_POLY,OWNER_NAME,OWN_ADD_L1,ZIP,YEAR_BUILT,SALE_VALUE,SALE_DATE'}",
+  "outFields": "${dataset === 'mn_state' ? 'county_pin,co_name,ctu_name,postcomm,useclass1,emv_land,emv_bldg,emv_total,acres_poly,owner_name,own_add_l1,zip,year_built,sale_value,sale_date,homestead' : 'PIN,CO_NAME,CTU_NAME,USECLASS1,EMV_LAND,EMV_BLDG,EMV_TOTAL,ACRES_POLY,OWNER_NAME,OWN_ADD_L1,ZIP,YEAR_BUILT,SALE_VALUE,SALE_DATE'}",
   "orderByFields": "<field ASC or DESC>",
   "explanation": "<one sentence describing what this query returns>"
 }
@@ -208,6 +210,8 @@ Respond with exactly this JSON shape:
 Rules:
 - WHERE must be valid ArcGIS SQL. Use 1=1 if no filter needed.
 - Never use subqueries or unsupported functions.
+- For date comparisons ALWAYS use DATE string format: e.g. SALE_DATE >= DATE '2020-01-01'. NEVER use epoch milliseconds like 1672531200000.
+- For "5 year timeline" or similar: calculate the date 5 years ago from today (2026) and use DATE '2021-01-01'.
 - For ratios: EMV_TOTAL > 0 AND (EMV_BLDG * 1.0 / EMV_TOTAL) < 0.15
 - For "underutilized" default to EMV_TOTAL > 0 AND (EMV_BLDG * 1.0 / EMV_TOTAL) < 0.20
 - For commercial: USECLASS1 LIKE '%COMMERCIAL%'
