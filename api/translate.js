@@ -33,7 +33,14 @@ For commercial: PROPCLASS = '2'
 For industrial/manufacturing: PROPCLASS = '3'
 For agricultural: PROPCLASS = '4'
 For residential: PROPCLASS = '1'
-County/city matching: use exact match or trailing wildcard only — NEVER leading wildcards. e.g. CONAME = 'Milwaukee', PLACENAME = 'Green Bay', or CONAME LIKE 'Mil%'. Never use LIKE '%value%' — ArcGIS blocks leading wildcards on large datasets.
+County/city matching rules:
+- CONAME is all uppercase county name, e.g. CONAME = 'MILWAUKEE', CONAME = 'BROWN', CONAME = 'DANE', CONAME = 'WAUKESHA'
+- PLACENAME uses format 'CITY OF X', 'TOWN OF X', or 'VILLAGE OF X' in all caps — you will not know which prefix applies, so always match all three using OR
+- When the user says a city/municipality name, generate: (PLACENAME = 'CITY OF X' OR PLACENAME = 'TOWN OF X' OR PLACENAME = 'VILLAGE OF X') where X is the uppercased name
+- Example: user says "Green Bay" → (PLACENAME = 'CITY OF GREEN BAY' OR PLACENAME = 'TOWN OF GREEN BAY' OR PLACENAME = 'VILLAGE OF GREEN BAY')
+- Example: user says "Madison" → (PLACENAME = 'CITY OF MADISON' OR PLACENAME = 'TOWN OF MADISON' OR PLACENAME = 'VILLAGE OF MADISON')
+- NEVER use leading wildcards like LIKE '%GREEN BAY%' — ArcGIS blocks them on large datasets
+- For county matching always use exact uppercase: CONAME = 'MILWAUKEE'
 `;
 
 
